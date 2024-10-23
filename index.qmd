@@ -1,18 +1,20 @@
-# Creating an R Shinylive App inside a Quarto Document
+---
+title: "R-shinylive app in Quarto!"
+format:
+  html:
+    grid: 
+      body-width: 1300px
+    resources: 
+      - shinylive-sw.js
+filters:
+  - shinylive
+---
 
-Interested in deploying a serverless Shiny application for R within Quarto? This is the repository for you! Here's a summary of what you can find in the repository:
+Interested in deploying a Shiny application for R within Quarto without a server? Check out:
 
-- **[index.qmd](index.qmd):** This file contains a tutorial that provides step-by-step instructions and guidance on using `r-shinylive` to embed Shiny applications in Quarto documents.
+<https://github.com/coatless-quarto/r-shinylive-demo>
 
-- **[R-shinylive-demo.qmd](R-shinylive-demo.qmd):** Inside this file, you can find a working example of the Shiny app that was used in Joe Cheng's [posit::conf(2023) demo](https://jcheng5.github.io/posit-conf-2023-shinylive/#/option-3-include-1). Please note that Joe's presentation contains files that are large in size and is not recommended for mobile devices. You can also refer to the [source code](https://github.com/jcheng5/posit-conf-2023-shinylive/blob/d385ad18eb0d867f25cc4721d9e8c25aeb2dfb90/slides.qmd#L299) of the demo.
-
-- **[template-r-shinylive.qmd](template-r-shinylive.qmd):** This file provides a skeleton template that you can use to populate your own Shiny apps. It serves as a starting point for creating your interactive Quarto documents with Shiny applications. Please note that you will still need to install the required software as mentioned in the tutorial.
-
-- **[_quarto.yml](_quarto-default.yml):** This configuration file is essential for Quarto and `shinylive` to work together effectively. 
-
-- **[.github/workflows/publish-demo.yml](.github/workflows/publish-demo.yml):** This file contains a sample workflow configuration for creating a website that embeds R Shiny applications using GitHub Actions and deploys it to GitHub Pages.
-
-Let's dive in! 
+For the demo, we're showing the source code used in Joe Cheng's [posit::conf(2023) demo](https://jcheng5.github.io/posit-conf-2023-shinylive/#/option-3-include-1) (Warning: Large file size, don't open on mobile!) [[Source Code](https://github.com/jcheng5/posit-conf-2023-shinylive/blob/d385ad18eb0d867f25cc4721d9e8c25aeb2dfb90/slides.qmd#L299)]
 
 > [!NOTE]
 >
@@ -46,15 +48,66 @@ Let's dive in!
 - **09/21/2023**
   - Initial release of the tutorial.
 
-## Sample App
+## Sample Application 
 
-We'll be walking through the process of creating the following R Shinylive application.
+We'll be walking through the process of creating the following R Shinylive application. Please be aware that it may take some time to load.
 
-![Example of the Shinylive app running in a Quarto HTML Document](images/demo-r-shinylive-app-inbrowser.gif)
+```{shinylive-r}
+#| standalone: true
+#| viewerHeight: 600
+library(shiny)
+library(bslib)
 
-You can see the live version built from the repository here:
+# Define UI for app that draws a histogram ----
+ui <- page_sidebar(
+  sidebar = sidebar(open = "open",
+    numericInput("n", "Sample count", 100),
+    checkboxInput("pause", "Pause", FALSE),
+  ),
+  plotOutput("plot", width=1100)
+)
 
-<https://coatless-quarto.github.io/r-shinylive-demo/>
+server <- function(input, output, session) {
+  data <- reactive({
+    input$resample
+    if (!isTRUE(input$pause)) {
+      invalidateLater(1000)
+    }
+    rnorm(input$n)
+  })
+  
+  output$plot <- renderPlot({
+    hist(data(),
+      breaks = 40,
+      xlim = c(-2, 2),
+      ylim = c(0, 1),
+      lty = "blank",
+      xlab = "value",
+      freq = FALSE,
+      main = ""
+    )
+    
+    x <- seq(from = -2, to = 2, length.out = 500)
+    y <- dnorm(x)
+    lines(x, y, lwd=1.5)
+    
+    lwd <- 5
+    abline(v=0, col="red", lwd=lwd, lty=2)
+    abline(v=mean(data()), col="blue", lwd=lwd, lty=1)
+
+    legend(legend = c("Normal", "Mean", "Sample mean"),
+      col = c("black", "red", "blue"),
+      lty = c(1, 2, 1),
+      lwd = c(1, lwd, lwd),
+      x = 1,
+      y = 0.9
+    )
+  }, res=140)
+}
+
+# Create Shiny app ----
+shinyApp(ui = ui, server = server)
+```
 
 ## Video Tutorial
 
@@ -76,10 +129,10 @@ Are you interested in creating your own Quarto document with embedded static Shi
 install.packages("shinylive")
 ```
 
-> [!NOTE]
-> 
-> This step differs from when the tutorial and video were written as the 
-> `shinylive` package was only able to be obtained from GitHub.
+:::{.callout-note}
+This step differs from when the tutorial and video were written as the 
+`shinylive` package was only able to be obtained from GitHub.
+:::
 
 ## Setting Up Your Quarto Project
 
@@ -90,7 +143,6 @@ quarto create project default
 ```
 
 ![Screenshot showing the Terminal tab of RStudio with the command to create a Quarto project.](images/create-quarto-r-shiny-live-project.png)
-
 
 While creating the project, you'll be prompted to specify a directory name. This name will also serve as the filename for your Quarto document. It's crucial to note that skipping this step will result in the absence of a `_quarto.yml` file, leading to an error when you attempt to render the document. The error message will resemble the following:
 
@@ -374,9 +426,10 @@ jobs:
         uses: actions/deploy-pages@v2
 ```
 
-> [!NOTE]
-> We have pinned the version of `shinylive` package on CRAN to v0.2.0 to ensure
-> consistency with the `quarto-ext/shinylive` Quarto extension. 
+:::{.callout-note}
+We have pinned the version of `shinylive` package on CRAN to v0.2.0 to ensure
+consistency with the `quarto-ext/shinylive` Quarto extension. 
+:::
 
 **Step 2:** Enable GitHub Pages deployment using GitHub Actions in your
 repository by going to the repository's `Settings` tab, selecting `Pages`, and
@@ -384,6 +437,7 @@ then under the build and deployment section set scource to GitHub Actions. Pleas
 make sure to also check the **Enforce HTTPS** option.
 
 ![Enabling GitHub Pages deployment through GitHub Actions](images/enable-github-pages-deployment-by-github-actions.png)
+
 
 By implementing this advanced setup, your Quarto document with the embedded shinylive app will automatically update whenever changes are pushed to the specified branches or when a release is published. This ensures that your audience always has access to the latest version of your interactive document.
 
